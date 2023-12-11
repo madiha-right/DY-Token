@@ -2,5 +2,30 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+solc_version = "^0.8.20"
+
+[fmt]
+# Maximum line length where formatter will try to wrap the line
+line_length = 120
+# Number of spaces per indentation level
+tab_width = 4
+# Print spaces between brackets
+bracket_spacing = false
+# Style of uint/int256 types
+int_types = "long"
+# If function parameters are multiline then always put the function attributes on separate lines
+func_attrs_with_params_multiline = true
+# Style of quotation marks
+quote_style = "double"
+# Style of underscores in number literals
+number_underscore = "preserve"
+
+[rpc_endpoints]
+mainnet = "${ALCHEMY_MAINNET_RPC_URL}"
+sepolia = "${ALCHEMY_SEPOLIA_RPC_URL}"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+
