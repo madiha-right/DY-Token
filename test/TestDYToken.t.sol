@@ -7,7 +7,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {DataTypes} from "src/libraries/DataTypes.sol";
 import {DistributableERC20} from "src/DistributableERC20.sol";
 import {DYToken} from "src/DYToken.sol";
-import {Core} from "../Core.t.sol";
+import {Core} from "./Core.t.sol";
 
 contract TestDYToken is Core {
     function testFuzz_totalAssets(uint256 amount) public {
@@ -134,9 +134,25 @@ contract TestDYToken is Core {
         assertEq(aliceAccount.debtAmount, bobInterest, "alice should have bob's claimed interest as debt");
     }
 
-    /**
-     * TODO: transfer, it should collect the loan and distribute the new amount
-     */
+    function test_transfer() public {
+        uint256 amount = 1e18;
+        DataTypes.Hat memory emptyHat = _getHat_empty();
+        DataTypes.Hat memory bobHat = _getHat_bob_100();
+        DataTypes.Hat memory davidHat = _getHat_david_100();
 
-    function test_transfer() public {}
+        deposit(amount, alice, bobHat.recipients, bobHat.proportions, alice);
+        changeHat(charlie, emptyHat, davidHat);
+
+        uint256 bobInterest = dyToken.getInterestPayable(bob);
+
+        vm.startPrank(alice);
+        dyToken.transfer(charlie, amount / 2);
+        vm.stopPrank();
+
+        assertEq(dyToken.balanceOf(alice), amount / 2, "alice should have half of the deposit amount");
+        assertEq(dyToken.balanceOf(charlie), amount / 2, "charlie should have half of the deposit amount");
+        assertEq(dyToken.balanceOf(bob), bobInterest, "bob should be paid the interest");
+        assertEq(dyToken.getInterestPayable(bob), 0, "bob should not have interest payable");
+        assertEq(dyToken.getAccountData(bob).interestPaid, bobInterest, "bob's interestPaid should be interest amount");
+    }
 }

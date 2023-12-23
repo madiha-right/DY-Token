@@ -313,10 +313,21 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
 
     /**
      * @dev Get interest payable of the account
+     *  NOTE: If every interest is paid, totalAssets() will be equal to totalSupply()
+     * 	Thus, the share mechanism will not work and _convertToAssets(account.debtShares)
+     *	will return the amount smaller than the account.debtAmount due to the rounding direction
+     *	To prevent this, we simply return 0 if every interest is paid
+     * @param user User account address
      */
     function _calcInterestPayable(address user) internal view virtual returns (uint256) {
         DataTypes.Account memory account = _accounts[user];
-        uint256 interest = _convertToAssets(account.debtShares, Math.Rounding.Floor) - account.debtAmount;
+        uint256 gross = _convertToAssets(account.debtShares, Math.Rounding.Floor);
+
+        if (gross <= account.debtAmount) {
+            return 0;
+        }
+
+        uint256 interest = gross - account.debtAmount;
 
         if (account.interestPaid >= interest) {
             return 0;

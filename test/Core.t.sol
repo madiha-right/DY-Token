@@ -133,7 +133,9 @@ contract Core is Test {
         vm.stopPrank();
         DataTypes.Account memory account = dyToken.getAccountData(user);
 
-        assertGt(account.interestPaid, 0, "interest should be paid");
+        if (oldHat.recipients.length > 0) {
+            assertGt(account.interestPaid, 0, "interest should be paid");
+        }
 
         for (uint256 i = 0; i < account.hat.recipients.length; i++) {
             assertEq(account.hat.recipients[i], newHat.recipients[i], "recipient 0 should be new recipient");
@@ -191,6 +193,26 @@ contract Core is Test {
         uint16[] memory proportions = new uint16[](1);
 
         recipients[0] = alice;
+        proportions[0] = 10000;
+
+        return DataTypes.Hat({recipients: recipients, proportions: proportions});
+    }
+
+    function _getHat_bob_100() internal view returns (DataTypes.Hat memory) {
+        address[] memory recipients = new address[](1);
+        uint16[] memory proportions = new uint16[](1);
+
+        recipients[0] = bob;
+        proportions[0] = 10000;
+
+        return DataTypes.Hat({recipients: recipients, proportions: proportions});
+    }
+
+    function _getHat_david_100() internal view returns (DataTypes.Hat memory) {
+        address[] memory recipients = new address[](1);
+        uint16[] memory proportions = new uint16[](1);
+
+        recipients[0] = david;
         proportions[0] = 10000;
 
         return DataTypes.Hat({recipients: recipients, proportions: proportions});
