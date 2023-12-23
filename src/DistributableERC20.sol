@@ -19,7 +19,7 @@ abstract contract DistributableERC20 is ERC20 {
     constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
 
     /**
-     * @notice Returns the amount of tokens owned by `account`.
+     * @dev Returns the amount of tokens owned by `account`.
      */
     function balanceOf(address user) public view override returns (uint256) {
         DataTypes.Account memory account = _accounts[user];
@@ -27,7 +27,7 @@ abstract contract DistributableERC20 is ERC20 {
     }
 
     /**
-     * @notice Moves `amount` tokens from the caller's account to `to`.
+     * @dev Moves `amount` tokens from the caller's account to `to`.
      * @return A boolean value indicating whether the operation succeeded.
      */
     function transfer(address to, uint256 value) public virtual override returns (bool) {
@@ -36,6 +36,11 @@ abstract contract DistributableERC20 is ERC20 {
         return true;
     }
 
+    /**
+     * @dev Moves a `value` amount of tokens from `from` to `to` using the
+     * allowance mechanism. `value` is then deducted from the caller's allowance.
+     * @return A boolean value indicating whether the operation succeeded.
+     */
     function transferFrom(address from, address to, uint256 value) public virtual override returns (bool) {
         address spender = _msgSender();
         _spendAllowance(from, spender, value);
@@ -59,7 +64,7 @@ abstract contract DistributableERC20 is ERC20 {
     function _convertToShares(uint256 assets, Math.Rounding rounding) internal view virtual returns (uint256) {}
 
     /**
-     * @dev Overrides _balances to _accounts.rAmount
+     * @dev Overrides _balances to _accounts.amount
      * Emits a {Transfer} event.
      */
     function _update(address from, address to, uint256 amount) internal override {

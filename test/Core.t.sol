@@ -27,12 +27,11 @@ contract Token is DYToken {
 
 contract Core is Test {
     using PercentageMath for uint256;
-    // address constant METH = 0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa; // METH on mainnet
 
-    address alice = makeAddr("alice");
-    address bob = makeAddr("bob");
-    address charlie = makeAddr("charlie");
-    address david = makeAddr("david");
+    address immutable alice = makeAddr("alice");
+    address immutable bob = makeAddr("bob");
+    address immutable charlie = makeAddr("charlie");
+    address immutable david = makeAddr("david");
 
     MockStETH public mockStETH;
     Token public dyToken;

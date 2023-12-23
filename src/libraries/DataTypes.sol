@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 /**
- * @notice RToken storage structures
+ * @notice DY-Token storage structures
  */
 library DataTypes {
     /**

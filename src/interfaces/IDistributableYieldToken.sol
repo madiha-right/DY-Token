@@ -16,13 +16,31 @@ interface IDistributableYieldToken is IERC20 {
     event ChangeHat(address indexed user, DataTypes.Hat oldHat, DataTypes.Hat newHat);
     event ClaimInterest(address indexed user, uint256 amount);
 
+    /**
+     * @dev Decimals are computed by adding the decimal offset on top of the underlying asset's decimals. This
+     * "original" value is cached during construction of the vault contract. If this read operation fails (e.g., the
+     * asset has not been created yet), a default of 18 is used to represent the underlying asset's decimals.
+     *
+     * See {IERC20Metadata-decimals}.
+     */
     function decimals() external view returns (uint8);
 
+    /**
+     * @dev Returns the address of the underlying token used for the Vault for accounting, depositing, and withdrawing.
+     *
+     * - MUST be an ERC-20 token contract.
+     * - MUST NOT revert.
+     */
     function asset() external view returns (address);
 
+    /**
+     * @dev Returns the total amount of the underlying asset that is “managed” by Vault.
+     *
+     * - SHOULD include any compounding that occurs from yield.
+     * - MUST be inclusive of any fees that are charged against assets in the Vault.
+     * - MUST NOT revert.
+     */
     function totalAssets() external view returns (uint256);
-
-    function getAccountData(address user) external view returns (DataTypes.Account memory);
 
     /**
      * @dev Deposits an `amount` of underlying asset into the vault, receiving in return overlying DY-Tokens.
@@ -60,6 +78,12 @@ interface IDistributableYieldToken is IERC20 {
      * @param user The address of the account to claim interest for
      */
     function claimInterest(address user) external;
+
+    /**
+     * @dev Get the account data for `user`.
+     * @return The account data.
+     */
+    function getAccountData(address user) external view returns (DataTypes.Account memory);
 
     /**
      * @dev Get interest payable for `user`
