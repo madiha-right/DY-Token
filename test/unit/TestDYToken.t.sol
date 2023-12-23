@@ -110,11 +110,6 @@ contract TestDYToken is Core {
         vm.stopPrank();
     }
 
-    /**
-     * TODO:
-     * 2. transfer, it should collect the loan and distribute the new amount
-     */
-
     function test_claimInterest() public {
         DataTypes.Hat memory bobNcharlieHat = _getHat_bobNcharlie_7030();
 
@@ -138,4 +133,10 @@ contract TestDYToken is Core {
 
         assertEq(aliceAccount.debtAmount, bobInterest, "alice should have bob's claimed interest as debt");
     }
+
+    /**
+     * TODO: transfer, it should collect the loan and distribute the new amount
+     */
+
+    function test_transfer() public {}
 }

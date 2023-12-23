@@ -115,10 +115,6 @@ contract Core is Test {
         }
 
         _withdraw(amount, receiver, sender);
-        /**
-         * TODO: check points
-         * 3. revert if the input amount is greater than the balance of the account
-         */
 
         assertEq(mockStETH.balanceOf(receiver), amount, "receiver should acquire the withdrawn amount");
 
