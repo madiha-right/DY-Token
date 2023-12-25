@@ -5,13 +5,20 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-
 import {ERC20} from "./libraries/ERC20.sol";
 import {DataTypes} from "./libraries/DataTypes.sol";
 import {PercentageMath} from "./libraries/PercentageMath.sol";
 import {DistributableERC20} from "./DistributableERC20.sol";
 import {IDistributableYieldToken} from "./interfaces/IDistributableYieldToken.sol";
 
+/**
+ * @title DYToken (Distributable Yield Token)
+ * @notice DY-Token, or Distributable Yield Token, is an _ERC20_ token that is 1:1 redeemable to its underlying LST(Liquid Staking Token).
+ *  			 The underlying LST generates interest by itself, for example stETH(https://stake.lido.fi/).
+ * 				 Owners of the DY-Tokens can use a definition called hat to configure who is the beneficiary of the accumulated interest.
+ * 				 DY-Token can be used for community funds, charities, crowdfunding, etc.
+ * @author Madiha - inspired by rToken
+ */
 abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
     using SafeERC20 for IERC20;
     using Math for uint256;
@@ -105,7 +112,7 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
 
         _asset.safeTransferFrom(sender, address(this), amount);
 
-        emit Deposit(sender, amount, receiver, DataTypes.Hat(recipients, proportions));
+        emit Deposit(sender, amount, receiver);
     }
 
     /**
@@ -129,7 +136,7 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
 
         _asset.safeTransfer(receiver, amount);
 
-        emit Withdraw(sender, amount, receiver, _accounts[sender].hat);
+        emit Withdraw(sender, amount, receiver);
     }
 
     /**

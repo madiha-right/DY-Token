@@ -7,9 +7,14 @@ import {ERC20} from "./libraries/ERC20.sol";
 import {DataTypes} from "./libraries/DataTypes.sol";
 
 /**
- * @title Distributable ERC20
- * @notice Distributable ERC20 implementation
- * @author Easy, inspired by the Openzeppelin ERC20 implementation
+ * @title Distributable ERC20 Token
+ * @notice This contract extends the standard ERC20 implementation with distributable features.
+ * 				 It introduces a unique approach to handling token balances and transfers,
+ * 				 integrating the concept of 'shares' alongside the standard token amounts.
+ * @dev The contract uses an internal mapping of accounts to a custom data structure, enhancing the standard
+ *      ERC20 functionality. It overrides several key functions to implement this logic, ensuring
+ *      compliance with the ERC20 standard while introducing new functionalities.
+ * @author Madiha, inspired by rToken
  */
 abstract contract DistributableERC20 is ERC20 {
     mapping(address => DataTypes.Account) internal _accounts;

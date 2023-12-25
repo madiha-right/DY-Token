@@ -9,11 +9,51 @@ interface IDistributableYieldToken is IERC20 {
     error InvalidHatLength(uint256 recipientsLength, uint256 proportionsLength);
     error InvalidProportion(uint256 proportion);
 
-    event Deposit(address indexed user, uint256 amount, address indexed receiver, DataTypes.Hat hat);
-    event Withdraw(address indexed user, uint256 amount, address indexed receiver, DataTypes.Hat hat);
+    /**
+     * @dev Emitted when a user deposits the underlying asset into the DY-Token.
+     * @param user The address of the user who initiated the deposit.
+     * @param amount The amount of the underlying LST deposited.
+     * @param receiver The address receiving the DY-Token that is minted.
+     */
+    event Deposit(address indexed user, uint256 amount, address indexed receiver);
+
+    /**
+     * @dev Emitted when a user withdraws the underlying asset from the vault.
+     * @param user The address of the user who initiated the withdrawal.
+     * @param amount The amount of the underlying LST withdrawn.
+     * @param receiver The address receiving the underlying LST.
+     */
+    event Withdraw(address indexed user, uint256 amount, address indexed receiver);
+
+    /**
+     * @dev Emitted when loans are recollected from a user's account.
+     * @param user The address of the user from whose account loans are recollected.
+     * @param amount The amount of underlying LST recollected.
+     * @param hat The hat of the user.
+     */
     event RecollectLoans(address indexed user, uint256 amount, DataTypes.Hat hat);
+
+    /**
+     * @dev Emitted when loans are distributed from a user's account to other accounts based on the hat recipients.
+     * @param user The address of the user from whose account loans are distributed.
+     * @param amount The amount of underlying LST distributed.
+     * @param hat The of the user.
+     */
     event DistributeLoans(address indexed user, uint256 amount, DataTypes.Hat hat);
+
+    /**
+     * @dev Emitted when a user changes their hat.
+     * @param user The address of the user who changed their hat.
+     * @param oldHat The previous hat.
+     * @param newHat The new hat.
+     */
     event ChangeHat(address indexed user, DataTypes.Hat oldHat, DataTypes.Hat newHat);
+
+    /**
+     * @dev Emitted when interest is claimed on behalf of a user.
+     * @param user The address of the user whose interest is claimed.
+     * @param amount The amount of DY-Tokens generated as interest.
+     */
     event ClaimInterest(address indexed user, uint256 amount);
 
     /**
