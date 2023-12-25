@@ -17,7 +17,7 @@ import {IDistributableYieldToken} from "./interfaces/IDistributableYieldToken.so
  *  			 The underlying LST generates interest by itself, for example stETH(https://stake.lido.fi/).
  * 				 Owners of the DY-Tokens can use a definition called hat to configure who is the beneficiary of the accumulated interest.
  * 				 DY-Token can be used for community funds, charities, crowdfunding, etc.
- * @author Madiha - inspired by rToken
+ * @author Madiha, inspired by rToken
  */
 abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
     using SafeERC20 for IERC20;
