@@ -40,8 +40,8 @@ contract Core is Test {
     error InvalidHatLength(uint256 recipientsLength, uint256 proportionsLength);
     error InvalidProportion(uint256 proportion);
 
-    event Deposit(address indexed user, uint256 amount, address indexed receiver, DataTypes.Hat hat);
-    event Withdraw(address indexed user, uint256 amount, address indexed receiver, DataTypes.Hat hat);
+    event Deposit(address indexed user, uint256 amount, address indexed receiver);
+    event Withdraw(address indexed user, uint256 amount, address indexed receiver);
     event RecollectLoans(address indexed user, uint256 amount, DataTypes.Hat hat);
     event DistributeLoans(address indexed user, uint256 amount, DataTypes.Hat hat);
     event ChangeHat(address indexed user, DataTypes.Hat oldHat, DataTypes.Hat newHat);
@@ -158,7 +158,7 @@ contract Core is Test {
         vm.expectEmit(true, false, false, true);
         emit DistributeLoans(sender, amount, DataTypes.Hat({recipients: recipients, proportions: proportions}));
         vm.expectEmit(true, true, false, true);
-        emit Deposit(sender, amount, receiver, DataTypes.Hat({recipients: recipients, proportions: proportions}));
+        emit Deposit(sender, amount, receiver);
 
         dyToken.deposit(amount, receiver, recipients, proportions);
 
@@ -173,7 +173,7 @@ contract Core is Test {
         vm.expectEmit();
         emit RecollectLoans(sender, amount, account.hat);
         vm.expectEmit(true, true, false, true);
-        emit Withdraw(sender, amount, receiver, account.hat);
+        emit Withdraw(sender, amount, receiver);
 
         dyToken.withdraw(amount, receiver);
 
