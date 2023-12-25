@@ -151,4 +151,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Author
 
-- [Madiha](https://twitter.com/madiha_right)
+- [Madiha](https://twitter.com/madiha_right), inspired by [rToken](https://github.com/rtoken-project/rtoken-monorepo/tree/master).
