@@ -11,10 +11,11 @@ library DataTypes {
      * To be a valid hat structure:
      *   - recipients.length == proportions.length
      *   - each value in proportions should be greater than 0
+     *   - the sum of all proportions should be equal to 10000
      */
     struct Hat {
         address[] recipients;
-        uint16[] proportions;
+        uint16[] proportions; // expressed in basis points (10000 = 100%)
     }
 
     /// @dev Account structure

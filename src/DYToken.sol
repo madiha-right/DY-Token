@@ -102,7 +102,7 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
         if (amount == type(uint256).max) {
             amount = _asset.balanceOf(sender);
         }
-        // skip changing hat if user does not want to change hat
+        // changing hat can be omitted if the user passes empty recipients and proportions
         if (recipients.length != 0 && proportions.length != 0) {
             _changeHat(sender, recipients, proportions);
         }
@@ -128,7 +128,7 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
         address sender = _msgSender();
 
         if (amount == type(uint256).max) {
-            amount = IERC20(address(this)).balanceOf(_msgSender());
+            amount = IERC20(address(this)).balanceOf(sender);
         }
 
         _recollectUnderlying(sender, amount);
@@ -276,7 +276,8 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
         if (account.amount > 0) {
             _recollectUnderlying(user, account.amount);
         }
-
+        //  NOTE: User can change to the invalid hat(e.g. proportions overflow) if they don't have balance at all.
+        //  However, user with invalid hat can't proceed any functions, even can not receive amount by transferring.
         _accounts[user].hat = DataTypes.Hat(recipients, proportions);
 
         if (account.amount > 0) {
@@ -334,7 +335,7 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
 
         uint256 interest = gross - account.delegatedAmount;
 
-        if (account.interestPaid >= interest) {
+        if (interest <= account.interestPaid) {
             return 0;
         }
         return interest - account.interestPaid;

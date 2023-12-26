@@ -27,8 +27,7 @@ abstract contract DistributableERC20 is ERC20 {
      * @dev Returns the amount of tokens owned by `account`.
      */
     function balanceOf(address user) public view override returns (uint256) {
-        DataTypes.Account memory account = _accounts[user];
-        return account.amount;
+        return _accounts[user].amount;
     }
 
     /**
@@ -84,19 +83,19 @@ abstract contract DistributableERC20 is ERC20 {
                 revert ERC20InsufficientBalance(from, fromBalance, amount);
             }
             unchecked {
-                // Overflow not possible: amount <= fromBalance <= totalSupply.
+                // Overflow not possible: amount <= fromBalance <= totalSupply
                 _accounts[from].amount = fromBalance - amount;
             }
         }
 
         if (to == address(0)) {
             unchecked {
-                // Overflow not possible: amount <= totalSupply or amount <= fromBalance <= totalSupply.
+                // Overflow not possible: amount <= totalSupply or amount <= fromBalance <= totalSupply
                 _totalSupply -= amount;
             }
         } else {
             unchecked {
-                // Overflow not possible: balance + amount is at most totalSupply, which we know fits into a uint256.
+                // Overflow not possible: balance + amount is at most totalSupply, which we know fits into a uint256
                 _accounts[to].amount += amount;
             }
         }
