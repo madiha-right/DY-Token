@@ -42,8 +42,8 @@ contract Core is Test {
 
     event Deposit(address indexed user, uint256 amount, address indexed receiver);
     event Withdraw(address indexed user, uint256 amount, address indexed receiver);
-    event RecollectLoans(address indexed user, uint256 amount, DataTypes.Hat hat);
-    event DistributeLoans(address indexed user, uint256 amount, DataTypes.Hat hat);
+    event RecollectUnderlying(address indexed user, uint256 amount, DataTypes.Hat hat);
+    event DelegateUnderlying(address indexed user, uint256 amount, DataTypes.Hat hat);
     event ChangeHat(address indexed user, DataTypes.Hat oldHat, DataTypes.Hat newHat);
     event ClaimInterest(address indexed user, uint256 amount);
 
@@ -68,22 +68,22 @@ contract Core is Test {
         assertEq(account.amount, amount, "amount");
         assertEq(dyToken.balanceOf(receiver), amount, "balanceOf");
 
-        uint256 debtToDistribute = amount;
-        uint256 debtSharesToDistribute = shares;
+        uint256 leftAmount = amount;
+        uint256 leftShares = shares;
 
         for (uint256 i = 0; i < recipients.length; i++) {
             DataTypes.Account memory recipient = dyToken.getAccountData(account.hat.recipients[i]);
             bool lastRecipient = i == recipients.length - 1;
-            uint256 debtAmount = lastRecipient ? debtToDistribute : amount.mulTo(account.hat.proportions[i]);
-            uint256 debtShares = lastRecipient ? debtSharesToDistribute : shares.mulTo(account.hat.proportions[i]);
+            uint256 amountToDelegate = lastRecipient ? leftAmount : amount.mulTo(account.hat.proportions[i]);
+            uint256 sharesToDelegate = lastRecipient ? leftShares : shares.mulTo(account.hat.proportions[i]);
 
-            assertEq(recipient.debtAmount, debtAmount, "debtAmount");
-            assertEq(recipient.debtShares, debtShares, "debtShares");
+            assertEq(recipient.delegatedAmount, amountToDelegate, "delegatedAmount");
+            assertEq(recipient.delegatedShares, sharesToDelegate, "delegatedShares");
             assertEq(account.hat.recipients[i], recipients[i], "recipient");
             assertEq(account.hat.proportions[i], proportions[i], "proportion");
 
-            debtToDistribute -= debtAmount;
-            debtSharesToDistribute -= debtShares;
+            leftAmount -= amountToDelegate;
+            leftShares -= sharesToDelegate;
         }
 
         mockStETH.simulateAccrual(address(dyToken)); // generate interst
@@ -156,7 +156,7 @@ contract Core is Test {
         mockStETH.approve(address(dyToken), amount);
 
         vm.expectEmit(true, false, false, true);
-        emit DistributeLoans(sender, amount, DataTypes.Hat({recipients: recipients, proportions: proportions}));
+        emit DelegateUnderlying(sender, amount, DataTypes.Hat({recipients: recipients, proportions: proportions}));
         vm.expectEmit(true, true, false, true);
         emit Deposit(sender, amount, receiver);
 
@@ -171,7 +171,7 @@ contract Core is Test {
         vm.startPrank(sender);
 
         vm.expectEmit();
-        emit RecollectLoans(sender, amount, account.hat);
+        emit RecollectUnderlying(sender, amount, account.hat);
         vm.expectEmit(true, true, false, true);
         emit Withdraw(sender, amount, receiver);
 

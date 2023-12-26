@@ -54,8 +54,8 @@ abstract contract DistributableERC20 is ERC20 {
     }
 
     /**
-     * @dev 1. Recollect loan from the `from` account
-     * 			2. Distribute loan to the recipients of the `to` account
+     * @dev 1. Recollect delegated `amount` amount from the `from` account
+     * 			2. Delegate recollected amount to the recipients of the `to` account
      * 			3. Transfer the `amount` tokens from the `from` account to the `to` account
      * @param from The address of the source account
      * @param to The address of the destination account

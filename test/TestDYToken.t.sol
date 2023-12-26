@@ -131,7 +131,9 @@ contract TestDYToken is Core {
 
         DataTypes.Account memory aliceAccount = dyToken.getAccountData(alice);
 
-        assertEq(aliceAccount.debtAmount, bobInterest, "alice should have bob's claimed interest as debt");
+        assertEq(
+            aliceAccount.delegatedAmount, bobInterest, "alice should have claimed interest of bob as delegated amount"
+        );
     }
 
     function test_transfer() public {

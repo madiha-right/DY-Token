@@ -13,8 +13,8 @@ import {IDistributableYieldToken} from "./interfaces/IDistributableYieldToken.so
 
 /**
  * @title DYToken (Distributable Yield Token)
- * @notice DY-Token, or Distributable Yield Token, is an _ERC20_ token that is 1:1 redeemable to its underlying LST(Liquid Staking Token).
- *  			 The underlying LST generates interest by itself, for example stETH(https://stake.lido.fi/).
+ * @notice DY-Token, or Distributable Yield Token, is an _ERC20_ token that is 1:1 redeemable to its underlying yield-bearing token.
+ *  			 The underlying yield-bearing token generates interest by itself, for example stETH(https://stake.lido.fi/).
  * 				 Owners of the DY-Tokens can use a definition called hat to configure who is the beneficiary of the accumulated interest.
  * 				 DY-Token can be used for community funds, charities, crowdfunding, etc.
  * @author Madiha, inspired by rToken
@@ -107,7 +107,7 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
             _changeHat(sender, recipients, proportions);
         }
 
-        _distributeLoans(receiver, amount);
+        _delegateUnderlying(receiver, amount);
         _mint(receiver, amount);
 
         _asset.safeTransferFrom(sender, address(this), amount);
@@ -131,7 +131,7 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
             amount = IERC20(address(this)).balanceOf(_msgSender());
         }
 
-        _recollectLoans(sender, amount);
+        _recollectUnderlying(sender, amount);
         _burn(sender, amount);
 
         _asset.safeTransfer(receiver, amount);
@@ -174,34 +174,34 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
     }
 
     /**
-     * @dev Recollect loan from the recipients
-     * 			- If the account uses the zero hat, recollect loan from the owner
+     * @dev Recollect delegated amount of underlying yield-bearing token from the recipients
+     * 			- If the account uses the zero hat, recollect delegated amount of underlying yield-bearing token from the owner
      * @param user User account address
-     * @param amount DY-Token amount of debt to be collected from the recipients
+     * @param amount Amount of underlying yield-bearing token to be collected from the recipients
      */
-    function _recollectLoans(address user, uint256 amount) internal virtual {
+    function _recollectUnderlying(address user, uint256 amount) internal virtual {
         DataTypes.Account memory account = _accounts[user];
         uint256 recipientsLen = account.hat.recipients.length;
 
         if (amount > account.amount) revert ERC20InsufficientBalance(user, account.amount, amount);
 
         if (recipientsLen == 0 && account.hat.proportions.length == 0) {
-            // Account uses the zero hat, recollect loan from the user itself
+            // Account uses the zero hat, recollect delegated amount from the user itself
             _claimInterest(user);
-            _accounts[user].debtAmount -= amount;
-            _accounts[user].debtShares -= _convertToShares(amount, Math.Rounding.Floor);
+            _accounts[user].delegatedAmount -= amount;
+            _accounts[user].delegatedShares -= _convertToShares(amount, Math.Rounding.Floor);
         } else {
-            uint256 debtToCollect = amount;
-            // collect loans from the recipients
+            uint256 leftAmount = amount;
+            // recollect delegated amount from the recipients
             for (uint256 i = 0; i < recipientsLen;) {
                 address recipient = account.hat.recipients[i];
                 uint16 proportion = account.hat.proportions[i];
-                uint256 debt = i == recipientsLen - 1 ? debtToCollect : amount.mulTo(uint256(proportion));
+                uint256 amountToRecollect = i == recipientsLen - 1 ? leftAmount : amount.mulTo(uint256(proportion));
 
                 _claimInterest(recipient);
-                _accounts[recipient].debtAmount -= debt;
-                _accounts[recipient].debtShares -= _convertToShares(debt, Math.Rounding.Floor);
-                debtToCollect -= debt;
+                _accounts[recipient].delegatedAmount -= amountToRecollect;
+                _accounts[recipient].delegatedShares -= _convertToShares(amountToRecollect, Math.Rounding.Floor);
+                leftAmount -= amountToRecollect;
 
                 unchecked {
                     ++i;
@@ -209,26 +209,26 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
             }
         }
 
-        emit RecollectLoans(user, amount, account.hat);
+        emit RecollectUnderlying(user, amount, account.hat);
     }
 
     /**
-     * @dev Distribute the incoming tokens to the recipients as loans
+     * @dev Delegate the incoming underlying tokens to the recipients
      * @param user User account address
-     * @param amount DY-Token amount being loaned to the recipients
+     * @param amount DY-Token amount being delegated to the recipients
      */
-    function _distributeLoans(address user, uint256 amount) internal virtual {
+    function _delegateUnderlying(address user, uint256 amount) internal virtual {
         DataTypes.Account memory account = _accounts[user];
         uint256 recipientsLen = account.hat.recipients.length;
 
         if (recipientsLen == 0 && account.hat.proportions.length == 0) {
-            // Account uses the zero hat, distribute loan to the user itself
-            _accounts[user].debtAmount += amount;
-            _accounts[user].debtShares += _convertToShares(amount, Math.Rounding.Floor);
+            // Account uses the zero hat, delegate amount of underlying yield-bearing token to the user itself
+            _accounts[user].delegatedAmount += amount;
+            _accounts[user].delegatedShares += _convertToShares(amount, Math.Rounding.Floor);
         } else {
-            uint256 debtToDistribute = amount;
+            uint256 leftAmount = amount;
             uint16 totalProportion;
-            // distribute loan to the recipients
+            // split amount of underlying yield-bearing token and delegate it to the recipients
             for (uint256 i = 0; i < recipientsLen;) {
                 address recipient = account.hat.recipients[i];
                 uint16 proportion = account.hat.proportions[i];
@@ -237,11 +237,11 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
                     revert InvalidProportion(proportion);
                 }
 
-                uint256 debt = i == recipientsLen - 1 ? debtToDistribute : amount.mulTo(uint256(proportion));
+                uint256 amountToDelegate = i == recipientsLen - 1 ? leftAmount : amount.mulTo(uint256(proportion));
 
-                _accounts[recipient].debtAmount += debt;
-                _accounts[recipient].debtShares += _convertToShares(debt, Math.Rounding.Floor);
-                debtToDistribute -= debt;
+                _accounts[recipient].delegatedAmount += amountToDelegate;
+                _accounts[recipient].delegatedShares += _convertToShares(amountToDelegate, Math.Rounding.Floor);
+                leftAmount -= amountToDelegate;
                 totalProportion += proportion;
 
                 unchecked {
@@ -254,14 +254,14 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
             }
         }
 
-        emit DistributeLoans(user, amount, account.hat);
+        emit DelegateUnderlying(user, amount, account.hat);
     }
 
     /**
      * @notice Change the hat for user
-     * @dev 1. Recollect loan from the user account
+     * @dev 1. Recollect delegated amount of yield-bearing token from the user account
      * 			2. Change the hat of the user account
-     * 		  3. Distribute loan to the recipients of the user account
+     * 		  3. Delegate amount of yield-bearing token to the recipients of the user account
      * @param user User account address
      * @param recipients List of beneficial recipients
      * @param proportions Relative proportions of benefits received by the recipients
@@ -274,13 +274,13 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
         DataTypes.Account memory account = _accounts[user];
 
         if (account.amount > 0) {
-            _recollectLoans(user, account.amount);
+            _recollectUnderlying(user, account.amount);
         }
 
         _accounts[user].hat = DataTypes.Hat(recipients, proportions);
 
         if (account.amount > 0) {
-            _distributeLoans(user, account.amount);
+            _delegateUnderlying(user, account.amount);
         }
 
         emit ChangeHat(user, account.hat, DataTypes.Hat(recipients, proportions));
@@ -295,7 +295,7 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
 
         if (interest > 0) {
             _accounts[user].interestPaid += interest;
-            _distributeLoans(user, interest);
+            _delegateUnderlying(user, interest);
             _mint(user, interest);
 
             emit ClaimInterest(user, interest);
@@ -303,36 +303,36 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
     }
 
     /**
-     * @dev 1. Recollect loan from the `from` account
-     * 			2. Distribute loan to the recipients of the `to` account
+     * @dev 1. Recollect delegated amount from the `from` account
+     * 			2. Delegate amount to the recipients of the `to` account
      * 			3. Transfer the `amount` tokens from the `from` account to the `to` account
      * @param from The address of the source account
      * @param to The address of the destination account
      * @param amount The number of tokens to transfer
      */
     function _executeTransfer(address from, address to, uint256 amount) internal override {
-        _recollectLoans(from, amount);
-        _distributeLoans(to, amount);
+        _recollectUnderlying(from, amount);
+        _delegateUnderlying(to, amount);
         _transfer(from, to, amount);
     }
 
     /**
      * @dev Get interest payable of the account
      *  NOTE: If every interest is paid, totalAssets() will be equal to totalSupply()
-     * 	Thus, the share mechanism will not work and _convertToAssets(account.debtShares)
-     *	will return the amount smaller than the account.debtAmount due to the rounding direction
+     * 	Thus, the share mechanism will not work and _convertToAssets(account.delegatedShares)
+     *	will return the amount smaller than the account.delegatedAmount due to the rounding direction
      *	To prevent this, we simply return 0 if every interest is paid
      * @param user User account address
      */
     function _calcInterestPayable(address user) internal view virtual returns (uint256) {
         DataTypes.Account memory account = _accounts[user];
-        uint256 gross = _convertToAssets(account.debtShares, Math.Rounding.Floor);
+        uint256 gross = _convertToAssets(account.delegatedShares, Math.Rounding.Floor);
 
-        if (gross <= account.debtAmount) {
+        if (gross <= account.delegatedAmount) {
             return 0;
         }
 
-        uint256 interest = gross - account.debtAmount;
+        uint256 interest = gross - account.delegatedAmount;
 
         if (account.interestPaid >= interest) {
             return 0;

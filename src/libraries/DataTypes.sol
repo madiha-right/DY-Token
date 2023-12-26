@@ -21,8 +21,8 @@ library DataTypes {
     struct Account {
         Hat hat; // Current hat of the account
         uint256 amount; // Current balance of the account (non realtime)
-        uint256 debtAmount; // Received loan. Debt in redeemable amount owed to the lenders distributed through one or more hats.
-        uint256 debtShares; // Shares of the debt to track the interest earned by the debt
+        uint256 delegatedAmount; // Delegated amount from to the delegators, distributed through one or more hats
+        uint256 delegatedShares; // Shares of the delegated amount to track the interest earned by the delegated amount
         uint256 interestPaid; // Interest paid to the account
     }
 }

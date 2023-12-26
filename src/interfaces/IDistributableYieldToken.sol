@@ -12,7 +12,7 @@ interface IDistributableYieldToken is IERC20 {
     /**
      * @dev Emitted when a user deposits the underlying asset into the DY-Token.
      * @param user The address of the user who initiated the deposit.
-     * @param amount The amount of the underlying LST deposited.
+     * @param amount The amount of the underlying yield-bearing token deposited.
      * @param receiver The address receiving the DY-Token that is minted.
      */
     event Deposit(address indexed user, uint256 amount, address indexed receiver);
@@ -20,26 +20,26 @@ interface IDistributableYieldToken is IERC20 {
     /**
      * @dev Emitted when a user withdraws the underlying asset from the vault.
      * @param user The address of the user who initiated the withdrawal.
-     * @param amount The amount of the underlying LST withdrawn.
-     * @param receiver The address receiving the underlying LST.
+     * @param amount The amount of the underlying yield-bearing token withdrawn.
+     * @param receiver The address receiving the underlying yield-bearing token.
      */
     event Withdraw(address indexed user, uint256 amount, address indexed receiver);
 
     /**
-     * @dev Emitted when loans are recollected from a user's account.
-     * @param user The address of the user from whose account loans are recollected.
-     * @param amount The amount of underlying LST recollected.
+     * @dev Emitted when delegated amount is recollected from a user's account to other accounts based on recipients.
+     * @param user The address of the user from whose account is recollecting delegated amount.
+     * @param amount The amount of underlying yield-bearing token recollected.
      * @param hat The hat of the user.
      */
-    event RecollectLoans(address indexed user, uint256 amount, DataTypes.Hat hat);
+    event RecollectUnderlying(address indexed user, uint256 amount, DataTypes.Hat hat);
 
     /**
-     * @dev Emitted when loans are distributed from a user's account to other accounts based on the hat recipients.
-     * @param user The address of the user from whose account loans are distributed.
-     * @param amount The amount of underlying LST distributed.
-     * @param hat The of the user.
+     * @dev Emitted when amount is deleagated from a user's account to other accounts based on the hat recipients.
+     * @param user The address of the user from whose account amount is delegated.
+     * @param amount The amount of underlying yield-bearing token delegated.
+     * @param hat The hat of the user.
      */
-    event DistributeLoans(address indexed user, uint256 amount, DataTypes.Hat hat);
+    event DelegateUnderlying(address indexed user, uint256 amount, DataTypes.Hat hat);
 
     /**
      * @dev Emitted when a user changes their hat.
