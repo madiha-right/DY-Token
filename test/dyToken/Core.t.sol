@@ -8,7 +8,7 @@ import {DataTypes} from "src/libraries/DataTypes.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {DistributableERC20} from "src/DistributableERC20.sol";
 import {DYToken} from "src/DYToken.sol";
-import {MockStETH} from "./mocks/MockStETH.sol";
+import {MockStETH} from "../mocks/MockStETH.sol";
 
 contract Token is DYToken {
     constructor(IERC20 _asset, string memory _name, string memory _symbol)
