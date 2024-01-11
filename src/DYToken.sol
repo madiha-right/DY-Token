@@ -24,8 +24,12 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
     using Math for uint256;
     using PercentageMath for uint256;
 
+    /* ============ Immutables ============ */
+
     IERC20 private immutable _asset;
     uint8 private immutable _underlyingDecimals;
+
+    /* ============ Constructor ============ */
 
     /**
      * @dev Set the underlying asset contract. This must be an ERC20-compatible contract (ERC-20 or ERC-777).
@@ -50,6 +54,8 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
         }
         return (false, 0);
     }
+
+    /* ============ External Functions ============ */
 
     /**
      * @dev Decimals are computed by adding the decimal offset on top of the underlying asset's decimals. This
@@ -172,6 +178,8 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
     function getInterestPayable(address user) external view virtual returns (uint256) {
         return _calcInterestPayable(user);
     }
+
+    /* ============ Internal Functions ============ */
 
     /**
      * @dev Recollect delegated amount of underlying yield-bearing token from the recipients

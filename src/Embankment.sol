@@ -6,20 +6,39 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {PercentageMath} from "./libraries/PercentageMath.sol";
 import {IDistributableYieldToken} from "./interfaces/IDistributableYieldToken.sol";
-import {IEmbank} from "./interfaces/IEmbank.sol";
+import {IEmbankment} from "./interfaces/IEmbankment.sol";
 
-contract Embank is IEmbank, Ownable {
+/**
+ * @title Embankment
+ * @dev Hold and manages the distribution of yield generated from principal of deposited tokens.
+ *      This contract handles the allocation and transfer of yield incentives to various receivers,
+ *      based on specified proportions. It interacts with yield-bearing and distributable yield tokens
+ *      to manage and distribute yield effectively.
+ */
+contract Embankment is IEmbankment, Ownable {
     using SafeERC20 for IERC20;
     using PercentageMath for uint256;
 
+    /* ============ Immutables ============ */
+
     IERC20 public immutable ybToken;
     IDistributableYieldToken public immutable dyToken;
+
+    /* ============ Constructor ============ */
 
     constructor(IERC20 _ybToken, IDistributableYieldToken _dyToken) Ownable(_msgSender()) {
         ybToken = _ybToken;
         dyToken = _dyToken;
     }
 
+    /* ============ External Functions ============ */
+
+    /**
+     * @dev Distributes the yield from the dyToken to designated receivers based on specified proportions.
+     *      Claims interest from dyToken, calculates the total incentive, and disburses it.
+     * 			The function ensures that the total of the distributed proportions equals 100%.
+     * @param data Encoded data containing arrays of receivers' addresses and their corresponding proportions.
+     */
     function dischargeYield(bytes calldata data) external {
         dyToken.claimInterest(address(this));
 

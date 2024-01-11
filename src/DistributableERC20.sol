@@ -17,11 +17,19 @@ import {DataTypes} from "./libraries/DataTypes.sol";
  * @author Madiha, inspired by rToken
  */
 abstract contract DistributableERC20 is ERC20 {
+    /* ============ State Variables ============ */
+
     mapping(address => DataTypes.Account) internal _accounts;
+
+    /* ============ Events ============ */
 
     event Transfer(address indexed from, address indexed to, uint256 amount, uint256 shares);
 
+    /* ============ Constructor ============ */
+
     constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
+
+    /* ============ External Functions ============ */
 
     /**
      * @dev Returns the amount of tokens owned by `account`.
@@ -51,6 +59,8 @@ abstract contract DistributableERC20 is ERC20 {
         _executeTransfer(from, to, value);
         return true;
     }
+
+    /* ============ Internal Functions ============ */
 
     /**
      * @dev 1. Recollect delegated `amount` amount from the `from` account
