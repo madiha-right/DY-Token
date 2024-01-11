@@ -39,7 +39,7 @@ contract Embankment is IEmbankment, Ownable {
      * 			The function ensures that the total of the distributed proportions equals 100%.
      * @param data Encoded data containing arrays of receivers' addresses and their corresponding proportions.
      */
-    function dischargeYield(bytes calldata data) external {
+    function dischargeYield(bytes calldata data) external onlyOwner {
         dyToken.claimInterest(address(this));
 
         uint256 totalIncentive = IERC20(dyToken).balanceOf(address(this));

@@ -3,27 +3,10 @@ pragma solidity ^0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {DataTypes} from "src/libraries/DataTypes.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
-import {DistributableERC20} from "src/DistributableERC20.sol";
-import {DYToken} from "src/DYToken.sol";
+import {Token} from "./Token.sol";
 import {MockStETH} from "../mocks/MockStETH.sol";
-
-contract Token is DYToken {
-    constructor(IERC20 _asset, string memory _name, string memory _symbol)
-        DYToken(_asset)
-        DistributableERC20(_name, _symbol)
-    {}
-
-    function convertToShares(uint256 amount) public view returns (uint256) {
-        return _convertToShares(amount, Math.Rounding.Floor);
-    }
-
-    function convertToAssets(uint256 shares) public view returns (uint256) {
-        return _convertToAssets(shares, Math.Rounding.Floor);
-    }
-}
 
 contract Core is Test {
     using PercentageMath for uint256;
