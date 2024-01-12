@@ -14,7 +14,8 @@ interface IDam {
     error DamNotOperating();
     error RoundNotEnded();
     error InsufficientBalance();
-    error InvalidAddress();
+    error InvalidAmountRequest();
+    error InvalidReceiver();
     error InvalidSignature();
 
     /* ============ Events ============ */
@@ -42,7 +43,7 @@ interface IDam {
      * @param id The unique identifier of the round.
      * @param data Data associated with the round's conclusion.
      */
-    event EndRound(uint16 id, bytes data);
+    event EndRound(uint16 indexed id, bytes data);
 
     /**
      * @dev Emitted upon depositing funds into the DAM.
@@ -104,10 +105,11 @@ interface IDam {
      * 				It includes the following:
      * 				- List of addresses to receive grants
      * 				- List of grant proportions
+     * @param v Part of the signature (v value).
      * @param r Part of the signature (r value).
-     * @param vs Combined v and s values of the signature.
+     * @param s Part of the signature (s value).
      */
-    function endRound(bytes calldata data, bytes32 r, bytes32 vs) external;
+    function endRound(bytes calldata data, uint8 v, bytes32 r, bytes32 s) external;
 
     /**
      * @dev Deposits the specified amount into the DAM, applying it to the ongoing round.

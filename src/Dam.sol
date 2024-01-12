@@ -70,7 +70,7 @@ contract Dam is IDam, Ownable {
 
     /* ============ Modifiers ============ */
 
-    // only the owner and oracle can call this function
+    /// @dev only the owner and oracle can call this function
     modifier onlyOwnerAndOracle() {
         address sender = _msgSender();
         if (sender != owner() && sender != oracle) revert OwnableUnauthorizedAccount(sender);
@@ -87,6 +87,13 @@ contract Dam is IDam, Ownable {
 
     /* ============ External Functions ============ */
 
+    /**
+     * @dev Starts the DAM operation with specified parameters.
+     * @param amount The amount of funds that will be the source of yield.
+     * @param period The duration of each round in seconds.
+     * @param reinvestmentRatio The percentage of yield reinvested back into the treasury.
+     * @param autoStreamRatio The percentage of yield allocated to automatic grant distribution.
+     */
     function operateDam(uint256 amount, uint256 period, uint16 reinvestmentRatio, uint16 autoStreamRatio)
         external
         onlyOwner
@@ -101,6 +108,11 @@ contract Dam is IDam, Ownable {
         emit OperateDam();
     }
 
+    /**
+     * @dev Decommissions the DAM and schedules a withdrawal to the specified receiver.
+     * 			All remaining funds in the DAM will be sent to the receiver.
+     * @param receiver The address to receive the remaining funds in the DAM.
+     */
     function decommissionDam(address receiver) external onlyOwner {
         if (!upstream.flowing) revert DamNotOperating();
         _scheduleWithdrawal(type(uint256).max, receiver);
@@ -109,9 +121,19 @@ contract Dam is IDam, Ownable {
         emit DecommissionDam();
     }
 
-    function endRound(bytes calldata data, bytes32 r, bytes32 vs) external onlyOwnerAndOracle {
-        if (keccak256(data).toEthSignedMessageHash().recover(r, vs) != oracle) revert InvalidSignature();
+    /**
+     * @dev Ends the current round, verifies data integrity, and processes withdrawals if any.
+     * @param data Data required to finalize the round.
+     * 				It includes the following:
+     * 				- List of addresses to receive grants
+     * 				- List of grant proportions
+     * @param v Part of the signature (v value).
+     * @param r Part of the signature (r value).
+     * @param s Part of the signature (s value).
+     */
+    function endRound(bytes calldata data, uint8 v, bytes32 r, bytes32 s) external onlyOwnerAndOracle {
         if (block.timestamp < round.endTime) revert RoundNotEnded();
+        if (keccak256(data).toEthSignedMessageHash().recover(v, r, s) != oracle) revert InvalidSignature();
 
         embankment.dischargeYield(data);
 
@@ -125,23 +147,44 @@ contract Dam is IDam, Ownable {
         emit EndRound(round.id, data);
     }
 
-    // deposit will be applied directly to the ongoing round
+    /**
+     * @dev Deposits the specified amount into the DAM, applying it to the ongoing round.
+     * @param amount The amount of funds to deposit.
+     */
     function deposit(uint256 amount) external onlyOwner {
         _deposit(amount);
     }
 
-    // Withdrawl happens when the round ends
+    /**
+     * @dev Schedules a withdrawal of the specified amount to the given receiver.
+     * @param amount The amount of funds to withdraw.
+     * @param receiver The address to receive the withdrawn funds.
+     */
     function scheduleWithdrawal(uint256 amount, address receiver) external onlyOwner {
         if (!upstream.flowing) revert DamNotOperating();
-        if (amount > IERC20(dyToken).balanceOf(address(this))) revert InsufficientBalance();
+
+        uint256 balance = IERC20(dyToken).balanceOf(address(this));
+
+        if (amount > balance) revert InsufficientBalance();
+        if (amount == balance) revert InvalidAmountRequest(); // to withdraw all, use decommissionDam()
+
         _scheduleWithdrawal(amount, receiver);
     }
 
-    // this upstream will be applied from the next round
+    /**
+     * @dev Sets the parameters for upcoming rounds in the DAM.
+     * @param period The duration of each round in seconds.
+     * @param reinvestmentRatio The percentage of yield reinvested back into the treasury.
+     * @param autoStreamRatio The percentage of yield allocated to automatic grant distribution.
+     */
     function setUpstream(uint256 period, uint16 reinvestmentRatio, uint16 autoStreamRatio) external onlyOwner {
         _setUpsteram(period, reinvestmentRatio, autoStreamRatio);
     }
 
+    /**
+     * @dev Updates the oracle address for data verification in endRound.
+     * @param newOracle The new oracle address.
+     */
     function setOracle(address newOracle) external onlyOwnerAndOracle {
         address oldOracle = oracle;
         oracle = newOracle;
@@ -217,6 +260,7 @@ contract Dam is IDam, Ownable {
 
         address sender = _msgSender();
         ybToken.safeTransferFrom(sender, address(this), amount);
+        ybToken.forceApprove(address(dyToken), amount);
         dyToken.deposit(amount, address(this), new address[](0), new uint16[](0));
 
         emit Deposit(sender, amount);
@@ -228,7 +272,7 @@ contract Dam is IDam, Ownable {
      * @param receiver The address to receive the ybTokens.
      */
     function _scheduleWithdrawal(uint256 amount, address receiver) internal {
-        if (receiver == address(0)) revert InvalidAddress();
+        if (receiver == address(0)) revert InvalidReceiver();
         withdrawals.push(Withdrawal(amount, receiver));
 
         emit ScheduleWithdrawal(receiver, amount);

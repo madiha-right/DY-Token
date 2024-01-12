@@ -32,14 +32,14 @@ contract TestEmbankment is Core {
         embankment.dischargeYield(data);
 
         assertEq(IERC20(address(dyToken)).balanceOf(address(embankment)), 0, "Embankment should not have any dyToken");
-        assertEq(IERC20(address(mockStETH)).balanceOf(address(embankment)), 0, "Embankment should not have any ybToken");
+        assertEq(IERC20(address(ybToken)).balanceOf(address(embankment)), 0, "Embankment should not have any ybToken");
 
         leftIncentive = totalIncentive;
 
         for (uint256 i = 0; i < recipients.length; i++) {
             uint256 incentive =
                 i == recipients.length - 1 ? leftIncentive : totalIncentive.mulTo(uint256(proportions[i]));
-            assertEq(IERC20(address(mockStETH)).balanceOf(recipients[i]), incentive, "Incorrect incentive");
+            assertEq(IERC20(address(ybToken)).balanceOf(recipients[i]), incentive, "Incorrect incentive");
             leftIncentive -= incentive;
         }
     }
