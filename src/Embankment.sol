@@ -48,15 +48,13 @@ contract Embankment is IEmbankment, Ownable {
         (address[] memory receivers, uint16[] memory proportions) = abi.decode(data, (address[], uint16[]));
 
         uint256 len = receivers.length;
-        uint256 leftAmount = totalIncentive;
         uint16 totalProportion;
 
         for (uint256 i = 0; i < len;) {
             address receiver = receivers[i];
             uint16 proportion = proportions[i];
-            uint256 amount = i == len - 1 ? leftAmount : totalIncentive.mulTo(uint256(proportion));
+            uint256 amount = totalIncentive.mulTo(uint256(proportion));
 
-            leftAmount -= amount;
             totalProportion += proportion;
             ybToken.safeTransfer(receiver, amount);
 

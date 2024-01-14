@@ -51,22 +51,15 @@ contract Core is Test {
         assertEq(account.amount, amount, "amount");
         assertEq(dyToken.balanceOf(receiver), amount, "balanceOf");
 
-        uint256 leftAmount = amount;
-        uint256 leftShares = shares;
-
         for (uint256 i = 0; i < recipients.length; i++) {
             DataTypes.Account memory recipient = dyToken.getAccountData(account.hat.recipients[i]);
-            bool lastRecipient = i == recipients.length - 1;
-            uint256 amountToDelegate = lastRecipient ? leftAmount : amount.mulTo(account.hat.proportions[i]);
-            uint256 sharesToDelegate = lastRecipient ? leftShares : shares.mulTo(account.hat.proportions[i]);
+            uint256 amountToDelegate = amount.mulTo(account.hat.proportions[i]);
+            uint256 sharesToDelegate = shares.mulTo(account.hat.proportions[i]);
 
             assertEq(recipient.delegatedAmount, amountToDelegate, "delegatedAmount");
             assertEq(recipient.delegatedShares, sharesToDelegate, "delegatedShares");
             assertEq(account.hat.recipients[i], recipients[i], "recipient");
             assertEq(account.hat.proportions[i], proportions[i], "proportion");
-
-            leftAmount -= amountToDelegate;
-            leftShares -= sharesToDelegate;
         }
 
         mockStETH.simulateAccrual(address(dyToken)); // generate interst

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
+import {console2} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -11,12 +12,8 @@ contract TestDam is Core {
     using MessageHashUtils for bytes32;
     /**
      * TODO:
-     *
-     * 9. endRound in core
-     * with restart
-     * with decommission
-     * round 3 times
-     * 10. check scheduleWithdrawal is working after ending round
+     * 1. check scheduleWithdrawal is working after ending round
+     * 2. scheduleWithdrawal failure case
      */
 
     /* ============ operateDam ============ */
@@ -45,17 +42,21 @@ contract TestDam is Core {
     function testFuzz_decomissionDam(uint256 amount) public {
         amount = bound(amount, 1e18, type(uint128).max);
         _operateDam(amount, PERIOD, REINVESTMENT_RATIO, AUTO_STREAM_RATIO, 1);
+        address zeta = makeAddr("zeta");
+
         vm.expectEmit(false, false, false, false);
         emit DecommissionDam();
 
-        dam.decommissionDam(alice);
+        dam.decommissionDam(zeta);
 
         (,,, bool flowing) = dam.upstream();
-        (uint256 withdrawalAmount, address receiver) = dam.withdrawals(0);
+        (uint256 withdrawalAmount, address receiver) = dam.withdrawal();
 
         assertEq(withdrawalAmount, type(uint256).max, "scheduled withdrawal amount should equal to type(uint256).max");
-        assertEq(receiver, alice, "_receiver should equal to alice");
+        assertEq(receiver, zeta, "_receiver should equal to zeta");
         assertEq(flowing, false, "Dam should not be operating");
+
+        _endRound(_getData(), 1);
     }
 
     function test_decomissionDam_NotOperating() public {
@@ -72,10 +73,13 @@ contract TestDam is Core {
     }
 
     /* ============ endRound ============ */
-    // TODO: multiple scenarios
-    // endRound with decommission : do it in decomission test
-    // 3. endRound 3 times in a row. restart, restart, restart
-    function test_endRound() public {}
+
+    function test_endRound() public {
+        _operateDam(1000 * 1e18, PERIOD, REINVESTMENT_RATIO, AUTO_STREAM_RATIO, 1);
+        _endRound(_getData(), 1);
+        _endRound(_getDataRoundTwo(), 2);
+        _endRound(_getDataRoundThree(), 3);
+    }
 
     function test_endRound_RoundNotEnded() public {
         _operateDam(1000 * 1e18, PERIOD, REINVESTMENT_RATIO, AUTO_STREAM_RATIO, 1);
@@ -166,16 +170,16 @@ contract TestDam is Core {
         emit ScheduleWithdrawal(alice, amount / 2);
         dam.scheduleWithdrawal(amount / 2, alice);
 
+        // overrided by the next scheduleWithdrawal
         vm.expectEmit(true, false, false, true);
-        emit ScheduleWithdrawal(bob, amount / 4);
-        dam.scheduleWithdrawal(amount / 4, bob);
+        emit ScheduleWithdrawal(fred, amount / 4);
+        dam.scheduleWithdrawal(amount / 4, fred);
 
-        (uint256 withdrawalAmount, address receiver) = dam.withdrawals(0);
-        (uint256 _withdrawalAmount, address _receiver) = dam.withdrawals(1);
-        assertEq(withdrawalAmount, amount / 2, "withdrawalAmount should equal to amount / 2");
-        assertEq(_withdrawalAmount, amount / 4, "_withdrawalAmount should equal to amount / 4");
-        assertEq(receiver, alice, "receiver should equal to alice");
-        assertEq(_receiver, bob, "_receiver should equal to bob");
+        (uint256 withdrawalAmount, address receiver) = dam.withdrawal();
+        assertEq(withdrawalAmount, amount / 4, "_withdrawalAmount should equal to amount / 4");
+        assertEq(receiver, fred, "receiver should equal to fred");
+
+        _endRound(_getData(), 1);
     }
 
     function test_scheduleWithdrawal_NotOperating() public {

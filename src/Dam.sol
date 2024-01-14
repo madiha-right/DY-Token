@@ -14,7 +14,7 @@ import {IDam} from "./interfaces/IDam.sol";
  * @title Dam
  * @dev Implements a performance and growth-based program designed to reward projects within the ecosystem.
  *      This contract manages yield generation and distribution, aligning with the strategic goals
- *      of fostering ecosystem development and project growth. It handles deposits, withdrawals,
+ *      of fostering ecosystem development and project growth. It handles deposits, withdrawal,
  *      and yield distribution, operating in defined rounds with specific configurations.
  */
 contract Dam is IDam, Ownable {
@@ -64,7 +64,7 @@ contract Dam is IDam, Ownable {
 
     Upstream public upstream; // configs
     Round public round;
-    Withdrawal[] public withdrawals; // scheduled withdrawals
+    Withdrawal public withdrawal; // scheduled withdrawal
 
     address public oracle; // address of oracle which provides the result data for the round
 
@@ -122,7 +122,7 @@ contract Dam is IDam, Ownable {
     }
 
     /**
-     * @dev Ends the current round, verifies data integrity, and processes withdrawals if any.
+     * @dev Ends the current round, verifies data integrity, and processes withdrawal if any.
      * @param data Data required to finalize the round.
      * 				It includes the following:
      * 				- List of addresses to receive grants
@@ -132,19 +132,24 @@ contract Dam is IDam, Ownable {
      * @param s Part of the signature (s value).
      */
     function endRound(bytes calldata data, uint8 v, bytes32 r, bytes32 s) external onlyOwnerAndOracle {
-        if (block.timestamp < round.endTime) revert RoundNotEnded();
+        Round memory _round = round;
+
+        if (block.timestamp < _round.endTime) revert RoundNotEnded();
         if (keccak256(data).toEthSignedMessageHash().recover(v, r, s) != oracle) revert InvalidSignature();
 
         embankment.dischargeYield(data);
 
-        if (withdrawals.length > 0) {
-            _processWithdrawls();
+        Withdrawal memory _withdrawal = withdrawal;
+
+        if (_withdrawal.amount > 0) {
+            _withdraw(_withdrawal.amount, _withdrawal.receiver);
+            withdrawal = Withdrawal(0, address(0));
         }
         if (upstream.flowing) {
             _startRound();
         }
 
-        emit EndRound(round.id, data);
+        emit EndRound(_round.id, data);
     }
 
     /**
@@ -209,21 +214,20 @@ contract Dam is IDam, Ownable {
         _round.startTime = timestamp;
         _round.endTime = timestamp + _upstream.period;
 
-        uint16 proportion = _upstream.reinvestmentRatio;
-        uint256 length = proportion == 0 ? 1 : 2;
+        uint256 length = _upstream.reinvestmentRatio == 0 ? 1 : 2;
 
         address[] memory recipients = new address[](length);
         uint16[] memory proportions = new uint16[](length);
 
-        // If proportion is 0, all the interest goes to embankment
-        if (proportion == 0) {
+        // If the reinvestmentRatio is 0, all the interest goes to embankment
+        if (_upstream.reinvestmentRatio == 0) {
             recipients[0] = address(embankment);
             proportions[0] = PERCENTAGE_FACTOR;
         } else {
             recipients[0] = address(embankment);
             recipients[1] = address(this);
-            proportions[0] = PERCENTAGE_FACTOR - proportion;
-            proportions[1] = proportion;
+            proportions[0] = PERCENTAGE_FACTOR - _upstream.reinvestmentRatio;
+            proportions[1] = _upstream.reinvestmentRatio;
         }
 
         dyToken.changeHat(recipients, proportions);
@@ -273,27 +277,9 @@ contract Dam is IDam, Ownable {
      */
     function _scheduleWithdrawal(uint256 amount, address receiver) internal {
         if (receiver == address(0)) revert InvalidReceiver();
-        withdrawals.push(Withdrawal(amount, receiver));
+        withdrawal = Withdrawal(amount, receiver);
 
         emit ScheduleWithdrawal(receiver, amount);
-    }
-
-    /**
-     * @dev Processes scheduled withdrawals.
-     */
-    function _processWithdrawls() internal {
-        Withdrawal[] memory _withdrawals = withdrawals;
-        uint256 len = _withdrawals.length;
-
-        for (uint256 i = 0; i < len;) {
-            _withdraw(withdrawals[i].amount, withdrawals[i].receiver);
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        delete withdrawals;
     }
 
     /**

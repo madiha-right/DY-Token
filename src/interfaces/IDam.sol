@@ -180,11 +180,10 @@ interface IDam {
 
     /**
      * @dev Retrieves information about a scheduled withdrawal.
-     * @param index The index of the withdrawal in the array.
      * @return amount The amount to be withdrawn.
      * @return receiver The address to receive the withdrawn funds.
      */
-    function withdrawals(uint256 index) external view returns (uint256 amount, address receiver);
+    function withdrawal() external view returns (uint256 amount, address receiver);
 
     /**
      * @dev Returns the address of the oracle responsible for data verification in the DAM.

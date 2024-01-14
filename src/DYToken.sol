@@ -199,17 +199,16 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
             _accounts[user].delegatedAmount -= amount;
             _accounts[user].delegatedShares -= _convertToShares(amount, Math.Rounding.Floor);
         } else {
-            uint256 leftAmount = amount;
             // recollect delegated amount from the recipients
             for (uint256 i = 0; i < recipientsLen;) {
                 address recipient = account.hat.recipients[i];
                 uint16 proportion = account.hat.proportions[i];
-                uint256 amountToRecollect = i == recipientsLen - 1 ? leftAmount : amount.mulTo(uint256(proportion));
+                uint256 amountToRecollect = amount.mulTo(uint256(proportion));
 
                 _claimInterest(recipient);
+
                 _accounts[recipient].delegatedAmount -= amountToRecollect;
                 _accounts[recipient].delegatedShares -= _convertToShares(amountToRecollect, Math.Rounding.Floor);
-                leftAmount -= amountToRecollect;
 
                 unchecked {
                     ++i;
@@ -234,7 +233,6 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
             _accounts[user].delegatedAmount += amount;
             _accounts[user].delegatedShares += _convertToShares(amount, Math.Rounding.Floor);
         } else {
-            uint256 leftAmount = amount;
             uint16 totalProportion;
             // split amount of underlying yield-bearing token and delegate it to the recipients
             for (uint256 i = 0; i < recipientsLen;) {
@@ -245,11 +243,9 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
                     revert InvalidProportion(proportion);
                 }
 
-                uint256 amountToDelegate = i == recipientsLen - 1 ? leftAmount : amount.mulTo(uint256(proportion));
-
+                uint256 amountToDelegate = amount.mulTo(uint256(proportion));
                 _accounts[recipient].delegatedAmount += amountToDelegate;
                 _accounts[recipient].delegatedShares += _convertToShares(amountToDelegate, Math.Rounding.Floor);
-                leftAmount -= amountToDelegate;
                 totalProportion += proportion;
 
                 unchecked {
@@ -275,8 +271,10 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
      * @param proportions Relative proportions of benefits received by the recipients
      */
     function _changeHat(address user, address[] calldata recipients, uint16[] calldata proportions) internal virtual {
-        if (recipients.length != proportions.length) {
-            revert InvalidHatLength(recipients.length, proportions.length);
+        uint256 len = proportions.length;
+
+        if (recipients.length != len) {
+            revert InvalidHatLength(recipients.length, len);
         }
 
         DataTypes.Account memory account = _accounts[user];
@@ -284,8 +282,22 @@ abstract contract DYToken is DistributableERC20, IDistributableYieldToken {
         if (account.amount > 0) {
             _recollectUnderlying(user, account.amount);
         }
-        //  NOTE: User can change to the invalid hat(e.g. proportions overflow) if they don't have balance at all.
-        //  However, user with invalid hat can't proceed any functions, even can not receive amount by transferring.
+
+        //  NOTE: Without this for loop validation, user can change to the invalid hat(e.g. proportions overflow) if they don't have balance at all.
+        uint256 total;
+
+        for (uint256 i = 0; i < len;) {
+            total += proportions[i];
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        if (total != PercentageMath.PERCENTAGE_FACTOR) {
+            revert InvalidProportion(total);
+        }
+
         _accounts[user].hat = DataTypes.Hat(recipients, proportions);
 
         if (account.amount > 0) {

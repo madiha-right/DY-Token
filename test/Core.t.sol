@@ -11,26 +11,12 @@ import {DataTypes} from "src/libraries/DataTypes.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {Token} from "./dyToken/Token.sol";
 import {MockStETH} from "./mocks/MockStETH.sol";
+import {Base} from "./Base.t.sol";
 
-contract Core is Test {
+contract Core is Base {
     using SafeERC20 for IERC20;
     using PercentageMath for uint256;
     using MessageHashUtils for bytes32;
-
-    /* ============ Constants ============ */
-
-    uint256 constant PERCENTAGE_FACTOR = 10000;
-    uint256 constant PERIOD = 30 days;
-    uint16 constant REINVESTMENT_RATIO = 500;
-    uint16 constant AUTO_STREAM_RATIO = 9000;
-    address constant ORACLE = address(0x1);
-
-    /* ============ Immutables ============ */
-
-    address immutable alice = makeAddr("alice");
-    address immutable bob = makeAddr("bob");
-    address immutable charlie = makeAddr("charlie");
-    address immutable david = makeAddr("david");
 
     /* ============ State Variables ============ */
 
@@ -39,33 +25,6 @@ contract Core is Test {
     Embankment public embankment;
     Dam public dam;
 
-    /* ============ Errors ============ */
-
-    error InvalidPeriod();
-    error InvalidRatio();
-    error DamAlredyOperating();
-    error DamNotOperating();
-    error RoundNotEnded();
-    error InsufficientBalance();
-    error InvalidAmountRequest();
-    error InvalidReceiver();
-    error InvalidSignature();
-    error InvalidProportion(uint256 proportion);
-    error OwnableUnauthorizedAccount(address account);
-
-    /* ============ Events ============ */
-
-    event OperateDam();
-    event DecommissionDam();
-    event StartRound(uint16 id, uint256 startTime, uint256 endTime);
-    event EndRound(uint16 indexed id, bytes data);
-    event Deposit(address indexed sender, uint256 amount);
-    event ScheduleWithdrawal(address indexed receiver, uint256 amount);
-    event SetUpstream(uint256 period, uint16 reinvestmentRatio, uint16 autoStreamRatio);
-    event SetOracle(address indexed oldOracle, address indexed newOracle);
-
-    event DistributeIncentive(address indexed receiver, uint16 proportion, uint256 amount);
-
     /* ============ setUp Function ============ */
 
     function setUp() public {
@@ -73,6 +32,8 @@ contract Core is Test {
         dyToken = new Token(IERC20(address(ybToken)), "Distributable Yield mock stETH", "DY-mock-stETH");
         embankment = new Embankment(IERC20(address(ybToken)), dyToken);
         dam = new Dam(ybToken, dyToken, embankment);
+
+        embankment.transferOwnership(address(dam));
     }
 
     /* ============ Internal Functions ============ */
@@ -129,24 +90,34 @@ contract Core is Test {
         }
     }
 
-    function _endRound(bytes calldata data, uint16 roundId) internal {
+    function _endRound(bytes memory data, uint16 roundId) internal {
         (address oracle, uint256 oraclePk) = makeAddrAndKey("oracle");
         bytes32 digest = keccak256(data).toEthSignedMessageHash();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(oraclePk, digest);
 
         dam.setOracle(oracle);
 
+        (uint256 _amount, address _receiver) = dam.withdrawal();
+        (, uint256 startTime, uint256 endTime) = dam.round();
+
+        _mintDyToken(10000 * 1e18, address(embankment)); // mock total incentive
+        uint256 totalIncentive = IERC20(address(dyToken)).balanceOf(address(embankment));
+
+        vm.warp(endTime);
         vm.expectEmit(true, false, false, true);
         emit EndRound(roundId, data);
-
         dam.endRound(data, v, r, s);
 
-        // embankment.dischargeYield()
+        _testDischargeYield(data, totalIncentive);
+        _testProcessWithdrawal(_amount, _receiver);
+        _testStartRound(roundId, startTime, endTime);
+    }
+
+    function _testDischargeYield(bytes memory data, uint256 totalIncentive) internal {
         assertEq(IERC20(address(dyToken)).balanceOf(address(embankment)), 0, "Embankment should not have any dyToken");
         assertEq(IERC20(address(ybToken)).balanceOf(address(embankment)), 0, "Embankment should not have any ybToken");
 
         (address[] memory recipients, uint16[] memory proportions) = abi.decode(data, (address[], uint16[]));
-        uint256 totalIncentive = IERC20(address(dyToken)).balanceOf(address(embankment));
         uint256 leftIncentive = totalIncentive;
 
         for (uint256 i = 0; i < recipients.length; i++) {
@@ -155,10 +126,36 @@ contract Core is Test {
             assertEq(IERC20(address(ybToken)).balanceOf(recipients[i]), incentive, "Incorrect incentive");
             leftIncentive -= incentive;
         }
+    }
 
-        // _processWithdrawl()
+    function _testProcessWithdrawal(uint256 _amount, address _receiver) internal {
+        if (_amount > 0) {
+            if (_amount == type(uint256).max) {
+                assertEq(dyToken.balanceOf(address(dam)), 0, "Dam should not have any dyToken");
+                assertEq(ybToken.balanceOf(address(dam)), 0, "Dam should not have any ybToken");
+            } else {
+                assertEq(ybToken.balanceOf(_receiver), _amount, "Receiver should have the _amount of ybToken");
+            }
+        }
 
-        // _startRound()
+        (uint256 amount, address receiver) = dam.withdrawal();
+        assertEq(amount, 0, "amount should equal to 0");
+        assertEq(receiver, address(0), "receiver should equal to address(0)");
+    }
+
+    function _testStartRound(uint16 roundId, uint256 startTime, uint256 endTime) internal {
+        (uint256 period,,, bool flowing) = dam.upstream();
+        (uint16 _id, uint256 _startTime, uint256 _endTime) = dam.round();
+
+        if (flowing) {
+            assertEq(_id, roundId + 1, "id should equal to roundId + 1");
+            assertEq(_startTime, block.timestamp, "startTime should equal to block.timestamp");
+            assertEq(_endTime, block.timestamp + period, "endTime should equal to block.timestamp + period");
+        } else {
+            assertEq(_id, roundId, "id should not increase");
+            assertEq(_startTime, startTime, "startTime should not change");
+            assertEq(_endTime, endTime, "endTime should not change");
+        }
     }
 
     function _mintYbToken(uint256 amount, address receiver) internal {
@@ -168,40 +165,6 @@ contract Core is Test {
     function _mintDyToken(uint256 amount, address receiver) internal {
         ybToken.mint(address(this), amount);
         ybToken.approve(address(dyToken), amount);
-        dyToken.deposit(amount, receiver, new address[](4), new uint16[](4));
-    }
-
-    function _getData() internal view returns (bytes memory) {
-        address[] memory recipients = new address[](4);
-        uint16[] memory proportions = new uint16[](4);
-
-        recipients[0] = alice;
-        recipients[1] = bob;
-        recipients[2] = charlie;
-        recipients[3] = david;
-
-        proportions[0] = 1000;
-        proportions[1] = 2000;
-        proportions[2] = 3000;
-        proportions[3] = 4000;
-
-        return abi.encodePacked(recipients, proportions);
-    }
-
-    function _getDataInvalidProportion() internal view returns (bytes memory, uint16) {
-        address[] memory recipients = new address[](4);
-        uint16[] memory proportions = new uint16[](4);
-
-        recipients[0] = alice;
-        recipients[1] = bob;
-        recipients[2] = charlie;
-        recipients[3] = david;
-
-        proportions[0] = 1000;
-        proportions[1] = 2000;
-        proportions[2] = 3000;
-        proportions[3] = 5000;
-
-        return (abi.encodePacked(recipients, proportions), 11000);
+        dyToken.deposit(amount, receiver, new address[](0), new uint16[](0));
     }
 }
