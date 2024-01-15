@@ -11,9 +11,9 @@ import {DataTypes} from "src/libraries/DataTypes.sol";
 import {PercentageMath} from "src/libraries/PercentageMath.sol";
 import {Token} from "./dyToken/Token.sol";
 import {MockStETH} from "./mocks/MockStETH.sol";
-import {Base} from "./Base.t.sol";
+import {Helper} from "./Helper.t.sol";
 
-contract Core is Base {
+contract Core is Helper {
     using SafeERC20 for IERC20;
     using PercentageMath for uint256;
     using MessageHashUtils for bytes32;

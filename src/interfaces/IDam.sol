@@ -17,6 +17,7 @@ interface IDam {
     error InvalidAmountRequest();
     error InvalidReceiver();
     error InvalidSignature();
+    error InvalidAddress();
 
     /* ============ Events ============ */
 

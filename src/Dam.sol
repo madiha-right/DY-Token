@@ -191,6 +191,7 @@ contract Dam is IDam, Ownable {
      * @param newOracle The new oracle address.
      */
     function setOracle(address newOracle) external onlyOwnerAndOracle {
+        if (newOracle == address(0)) revert InvalidAddress();
         address oldOracle = oracle;
         oracle = newOracle;
         emit SetOracle(oldOracle, newOracle);

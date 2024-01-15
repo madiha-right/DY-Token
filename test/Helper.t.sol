@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Test, console2} from "forge-std/Test.sol";
 
-contract Base is Test {
+contract Helper is Test {
     /* ============ Constants ============ */
 
     uint256 constant PERCENTAGE_FACTOR = 10000;
@@ -79,6 +79,7 @@ contract Base is Test {
     error InvalidSignature();
     error InvalidProportion(uint256 proportion);
     error OwnableUnauthorizedAccount(address account);
+    error InvalidAddress();
 
     /* ============ Events ============ */
 

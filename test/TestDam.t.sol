@@ -10,11 +10,6 @@ import {Core} from "./Core.t.sol";
 contract TestDam is Core {
     using SafeERC20 for IERC20;
     using MessageHashUtils for bytes32;
-    /**
-     * TODO:
-     * 1. check scheduleWithdrawal is working after ending round
-     * 2. scheduleWithdrawal failure case
-     */
 
     /* ============ operateDam ============ */
 
@@ -252,5 +247,10 @@ contract TestDam is Core {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, alice));
         dam.setOracle(ORACLE);
+    }
+
+    function test_setOracle_InvalidAddres() public {
+        vm.expectRevert(abi.encodeWithSelector(InvalidAddress.selector));
+        dam.setOracle(address(0));
     }
 }
